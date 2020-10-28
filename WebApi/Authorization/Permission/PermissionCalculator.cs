@@ -8,7 +8,6 @@ using System.Text;
 using System.Threading.Tasks;
 using WebApi.Data;
 using WebApi.Data.Entities;
-using WebApi.Support;
 
 namespace WebApi.Authorization
 {

@@ -1,28 +1,27 @@
+using Google.Apis.Auth;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using WebApi.Data.Entities;
-using WebApi.Helpers;
-using System.Threading.Tasks;
-using System.Text;
-using System.Security.Cryptography;
-using System.IdentityModel.Tokens.Jwt;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using System.Security.Claims;
-using WebApi.Dtos;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Authorization;
-using Google.Apis.Auth;
-using Microsoft.Extensions.Configuration;
-using System.Net.Http;
 using Newtonsoft.Json;
-using System.Xml;
-using Microsoft.EntityFrameworkCore;
-using WebApi.Data;
-using System.Security.Principal;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
+using System.Net.Http;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
 using WebApi.Authorization;
+using WebApi.Data;
+using WebApi.Data.Entities;
+using WebApi.Dtos;
+using WebApi.Helpers;
 using WebApi.Support.Extensions;
 
 namespace WebApi.Services
@@ -32,20 +31,17 @@ namespace WebApi.Services
         private readonly DataContext db;
         private readonly SignInManager<User> signInManager;
         private readonly UserManager<User> userManager;
-        private readonly RoleManager<Role> roleManager;
         private readonly AppSettings appSettings;
         private readonly IHttpContextAccessor httpContextAccessor;
         private readonly IErrorLogService errorLogService;
         private readonly IEmailSenderService emailSenderService;
         private readonly IConfiguration configuration;
 
-
         public UserService
         (
             DataContext context,
             SignInManager<User> signInManager,
             UserManager<User> userManager,
-            RoleManager<Role> roleManager,
             IOptions<AppSettings> appSettings,
             IHttpContextAccessor httpContextAccessor,
             IErrorLogService logService,
@@ -56,7 +52,6 @@ namespace WebApi.Services
             db = context;
             this.signInManager = signInManager;
             this.userManager = userManager;
-            this.roleManager = roleManager;
             this.appSettings = appSettings.Value;
             this.httpContextAccessor = httpContextAccessor;
             this.errorLogService = logService;
@@ -86,7 +81,7 @@ namespace WebApi.Services
                 if (!string.IsNullOrEmpty(user.Email)) CurrentUser = await userManager.FindByEmailAsync(user.Email);
                 else if (!string.IsNullOrEmpty(user.UserName)) CurrentUser = await userManager.FindByNameAsync(user.UserName);
 
-                if(CurrentUser == null)
+                if (CurrentUser == null)
                 {
                     model.Status = AuthStatus.LoginInvalid;
                     throw new Exception("User not found");
@@ -98,12 +93,12 @@ namespace WebApi.Services
 
                 if (result.Succeeded)
                 {
-                    if(CurrentUser.LockoutEnd.HasValue && CurrentUser.LockoutEnd.Value > DateTime.Now)
+                    if (CurrentUser.LockoutEnd.HasValue && CurrentUser.LockoutEnd.Value > DateTime.Now)
                     {
                         model.Status = AuthStatus.UserLocked;
                         throw new Exception("Locked user");
                     }
-                    model.AuthDto =  await GetUserAuthAsync(CurrentUser);
+                    model.AuthDto = await GetUserAuthAsync(CurrentUser);
                     if (model.AuthDto != null)
                     {
                         if (CurrentUser.EmailConfirmed) model.Status = AuthStatus.Ok;
@@ -111,7 +106,6 @@ namespace WebApi.Services
                     }
                 }
                 else model.Status = AuthStatus.LoginInvalid;
-                
 
                 return model;
             }
@@ -151,7 +145,9 @@ namespace WebApi.Services
             try
             {
                 HttpClient HttpClient = new HttpClient();
+
                 #region Check Validity and Permissions
+
                 string AcessToken = configuration.GetSection("Facebook").GetSection("AccessToken").Value;
                 Uri fbTokenDetailsUri = new Uri($"https://graph.facebook.com/v4.0/debug_token?input_token={idToken}&access_token={AcessToken}");
                 HttpResponseMessage fbTokenDetailsResponse = await HttpClient.GetAsync(fbTokenDetailsUri);
@@ -182,7 +178,8 @@ namespace WebApi.Services
                         throw new Exception("Facebook user didn't grant the necessary permissions");
                     }
                 }
-                #endregion
+
+                #endregion Check Validity and Permissions
 
                 HttpResponseMessage response = await HttpClient.GetAsync($"https://graph.facebook.com/v4.0/me?access_token={idToken}&fields=id,name,email,first_name,last_name,age_range,birthday,gender,locale,picture");
                 if (!response.IsSuccessStatusCode) throw new Exception("Could not get a response from Facebook");
@@ -204,7 +201,7 @@ namespace WebApi.Services
 
         public async Task<AuthStatusDto> RefreshAsync(string idToken)
         {
-            string UserId = "";
+            Guid? UserId = null;
             AuthStatusDto model = new AuthStatusDto { Status = AuthStatus.Error };
             try
             {
@@ -217,14 +214,14 @@ namespace WebApi.Services
 
                 JwtSecurityToken Token = (JwtSecurityToken)SecurityToken;
 
-                UserId = Token.Claims.Where(s => s.Type == JwtClaimType.UserId).FirstOrDefault().Value;
-                if (string.IsNullOrWhiteSpace(UserId))
+                UserId = Token.Id();
+                if (!UserId.HasValue)
                 {
                     model.Status = AuthStatus.TokenNotValid;
                     throw new Exception("Token doesn't contain a user Id");
                 }
 
-                User user = await GetById(UserId);
+                User user = await GetById(UserId.Value);
                 if (user == null)
                 {
                     model.Status = AuthStatus.LoginInvalid;
@@ -276,7 +273,7 @@ namespace WebApi.Services
             return db.Users;
         }
 
-        public async Task<User> GetById(string id)
+        public async Task<User> GetById(Guid id)
         {
             return await db.Users.FindAsync(id);
         }
@@ -335,7 +332,7 @@ namespace WebApi.Services
                 model.Status = AuthStatus.NoEmailConfirm;
 
                 if (result.Succeeded) await emailSenderService.SendEmail(user.Email, EmailTemplates.Account.RegistrationCode, ConfirmationCode);
-                
+
                 return model;
             }
             catch (Exception e)
@@ -346,7 +343,7 @@ namespace WebApi.Services
         }
 
         [Authorize]
-        public async Task<AuthStatusDto> RevokeAccess(string UserId)
+        public async Task<AuthStatusDto> RevokeAccess(Guid UserId)
         {
             AuthStatusDto model = new AuthStatusDto { Status = AuthStatus.Error };
             try
@@ -419,24 +416,6 @@ namespace WebApi.Services
             {
                 db.Users.Remove(user);
                 db.SaveChanges();
-            }
-        }
-
-        public async Task<bool> CreateRoleAsync(Role role)
-        {
-            try
-            {
-                IdentityResult result = await roleManager.CreateAsync(role);
-                if (!result.Succeeded)
-                {
-                    throw new Exception(result.Errors.FirstOrDefault().Description);
-                }
-                return true;
-            }
-            catch (Exception e)
-            {
-                await errorLogService.InsertException(e);
-                throw;
             }
         }
 
@@ -626,19 +605,6 @@ namespace WebApi.Services
             }
         }
 
-        public async Task<bool> UpdateClaims(IIdentity user, bool RefreshSubscription = false)
-        {
-            if (user == null) return false;
-            User CurrentUser = await userManager.FindByIdAsync(user.Id());
-            if (CurrentUser == null) return false;
-            if (!(user is ClaimsIdentity identity)) return false;
-
-            await ClaimManager.UpdateClaims(identity, db, CurrentUser, RefreshSubscription);
-
-            await signInManager.RefreshSignInAsync(CurrentUser);
-            return true;
-        }
-
         // private helper methods
         private async Task AccessFailed(User user)
         {
@@ -773,7 +739,7 @@ namespace WebApi.Services
                         db.Update(CurrentUser);
                         await db.SaveChangesAsync();
 
-                        if(EmailConfirmed) model.Status = AuthStatus.Ok;
+                        if (EmailConfirmed) model.Status = AuthStatus.Ok;
                         else model.Status = AuthStatus.NoEmailConfirm;
                     }
                 }
@@ -786,6 +752,8 @@ namespace WebApi.Services
             }
         }
 
+#pragma warning disable CS0162 // Unreachable code detected - Parts of the token are bound by flags and may be unreachable by default
+
         private async Task<AuthDto> GetUserAuthAsync(User CurrentUser)
         {
             try
@@ -796,6 +764,29 @@ namespace WebApi.Services
                     new Claim(JwtClaimType.Email, CurrentUser.Email),
                     new Claim(JwtClaimType.RevokeCode, CurrentUser.RevokeCode),
                 };
+
+                PermissionCalculator PermissionCalculator = new PermissionCalculator(db);
+                string Permissions = await PermissionCalculator.CalculatePermissions(CurrentUser.Id);
+
+                claims.Add(new Claim(PermissionConstants.ClaimType, Permissions));
+
+                string FirstName = "User";
+                if (!string.IsNullOrEmpty(CurrentUser.FirstName)) FirstName = CurrentUser.FirstName;
+                claims.Add(new Claim(ClaimTypes.GivenName, FirstName));
+
+                string LastName = string.Empty;
+                if (!string.IsNullOrEmpty(CurrentUser.LastName)) LastName = CurrentUser.LastName;
+                claims.Add(new Claim(ClaimTypes.Surname, LastName));
+
+                string Email = string.Empty;
+                if (!string.IsNullOrEmpty(CurrentUser.Email)) Email = CurrentUser.Email;
+                claims.Add(new Claim(ClaimTypes.Email, Email));
+
+                if (PermissionConstants.SubscriptionEnabled)
+                {
+                    DateTime SubscriptionDate = await PermissionCalculator.CalculateSubscription();
+                    if (DateTime.UtcNow < SubscriptionDate) claims.Add(new Claim(PermissionConstants.SubscriptionClaimType, DateTime.UtcNow.ToString("s", CultureInfo.InvariantCulture)));
+                }
 
                 byte[] Secret = Encoding.Default.GetBytes(appSettings.SigningKey);
                 byte[] Key = Encoding.Default.GetBytes(appSettings.EncryptionKey);
@@ -844,6 +835,8 @@ namespace WebApi.Services
             }
         }
 
+#pragma warning restore CS0162 // Unreachable code detected
+
         private async Task<SecurityToken> DecryptToken(string idToken)
         {
             try
@@ -851,7 +844,6 @@ namespace WebApi.Services
                 JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
                 SymmetricSecurityKey SigningKey = new SymmetricSecurityKey(Encoding.Default.GetBytes(appSettings.SigningKey));
                 SymmetricSecurityKey EncryptionKey = new SymmetricSecurityKey(Encoding.Default.GetBytes(appSettings.EncryptionKey));
-
 
                 if (!tokenHandler.CanReadToken(idToken)) throw new Exception("No readable token");
 

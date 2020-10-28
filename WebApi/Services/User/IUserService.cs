@@ -1,12 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using WebApi.Data.Entities;
-using WebApi.Helpers;
-using Microsoft.AspNetCore.Identity;
 using System.Threading.Tasks;
+using WebApi.Data.Entities;
 using WebApi.Dtos;
-using System.Security.Principal;
 
 namespace WebApi.Services
 {
@@ -20,19 +16,17 @@ namespace WebApi.Services
 
         Task<AuthStatusDto> RefreshAsync(string idToken);
 
-        Task<AuthStatusDto> RevokeAccess(string UserId);
+        Task<AuthStatusDto> RevokeAccess(Guid UserId);
 
         IEnumerable<User> GetAll();
 
-        Task<User> GetById(string id);
+        Task<User> GetById(Guid id);
 
         Task<AuthStatusDto> CreateAsync(User user, string password);
 
         Task<bool> UpdateAsync(EditUserDto user);
 
         void Delete(int id);
-
-        Task<bool> CreateRoleAsync(Role role);
 
         Task<bool> AddToRoleAsync(User user, IEnumerable<string> roles);
 
@@ -49,7 +43,5 @@ namespace WebApi.Services
         Task<bool?> IsLockedAsync(User user);
 
         Task<bool?> IsLockedAsync();
-
-        Task<bool> UpdateClaims(IIdentity user, bool RefreshSubscription = false);
     }
 }

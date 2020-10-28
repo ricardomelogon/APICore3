@@ -1,21 +1,21 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using WebApi.Dtos;
-using WebApi.Data.Entities;
-using WebApi.Helpers;
-using WebApi.Helpers.Extensions;
-using WebApi.Services;
 using WebApi.Authorization;
+using WebApi.Data.Entities;
+using WebApi.Dtos;
+using WebApi.Services;
+using WebApi.Support;
+using WebApi.Support.Extensions;
 
 namespace WebApi.Controllers
 {
     [Authorize]
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     public class UserController : Controller
     {
         private readonly IUserService userService;
@@ -31,7 +31,7 @@ namespace WebApi.Controllers
 
         [AllowAnonymous]
         [HttpPost("auth")]
-        public async Task<IActionResult> AuthenticateAsync([FromBody]UserDto userDto)
+        public async Task<IActionResult> AuthenticateAsync(UserDto userDto)
         {
             try
             {
@@ -57,7 +57,7 @@ namespace WebApi.Controllers
 
         [AllowAnonymous]
         [HttpPost("googleauth")]
-        public async Task<IActionResult> GoogleAuthAsync([FromBody]AuthToken token)
+        public async Task<IActionResult> GoogleAuthAsync(AuthToken token)
         {
             try
             {
@@ -82,7 +82,7 @@ namespace WebApi.Controllers
 
         [AllowAnonymous]
         [HttpPost("facebookauth")]
-        public async Task<IActionResult> FacebookAuthAsync([FromBody]AuthToken token)
+        public async Task<IActionResult> FacebookAuthAsync(AuthToken token)
         {
             try
             {
@@ -106,7 +106,7 @@ namespace WebApi.Controllers
 
         [AllowAnonymous]
         [HttpPost("refresh")]
-        public async Task<IActionResult> RefreshAsync([FromBody]AuthToken token)
+        public async Task<IActionResult> RefreshAsync(AuthToken token)
         {
             try
             {
@@ -132,7 +132,7 @@ namespace WebApi.Controllers
 
         [AllowAnonymous]
         [HttpPost("register")]
-        public async Task<IActionResult> RegisterAsync([FromBody]UserDto userDto)
+        public async Task<IActionResult> RegisterAsync(UserDto userDto)
         {
             // map dto to entity
             User user = userDto.ToUser();
@@ -163,7 +163,7 @@ namespace WebApi.Controllers
 
         [AllowAnonymous]
         [HttpPost("forgotpwdsendcode")]
-        public async Task<ActionResult> ForgotPasswordEmailAsync([FromBody]ForgotPwdDto model)
+        public async Task<ActionResult> ForgotPasswordEmailAsync(ForgotPwdDto model)
         {
             try
             {
@@ -183,7 +183,7 @@ namespace WebApi.Controllers
 
         [AllowAnonymous]
         [HttpPost("forgotpwdconfirm")]
-        public async Task<ActionResult> ForgotPasswordAsync([FromBody]ForgotPwdDto model)
+        public async Task<ActionResult> ForgotPasswordAsync(ForgotPwdDto model)
         {
             try
             {
@@ -201,14 +201,35 @@ namespace WebApi.Controllers
             }
         }
 
+        [AllowAnonymous]
+        [HttpGet("index")]
+        public async Task<IActionResult> Index()
+        {
+            Guid? UserId = null;
+            RequestFeedback request = new RequestFeedback();
+            try
+            {
+                UserId = User.Id();
+                request.Success = true;
+                request.Title = "Welcome!";
+                return Ok(request);
+            }
+            catch (Exception e)
+            {
+                await errorLogService.InsertException(e, UserId);
+                return BadRequest();
+            }
+        }
+
         [Authorize]
         [HttpPost("revoke")]
         public async Task<ActionResult> RevokeAccess()
         {
             try
             {
-                string UserId = User.Id();
-                AuthStatusDto result = await userService.RevokeAccess(UserId);
+                Guid? UserId = User.Id();
+                if (!UserId.HasValue) throw new Exception("User Id not found");
+                AuthStatusDto result = await userService.RevokeAccess(UserId.Value);
                 return result.Status switch
                 {
                     AuthStatus.Ok => Ok(new { Status = AuthStatus.Ok, User = result.AuthDto }),
@@ -228,7 +249,7 @@ namespace WebApi.Controllers
         [AllowAnonymous]
         [Authorize] //Authorize without role
         [HttpPost("confirmemail")]
-        public async Task<ActionResult> ConfirmEmailAsync([FromBody]string ConfirmationCode)
+        public async Task<ActionResult> ConfirmEmailAsync(string ConfirmationCode)
         {
             try
             {
@@ -276,15 +297,32 @@ namespace WebApi.Controllers
         }
 
         [HttpGet("get")]
-        public async Task<IActionResult> GetById(string id)
+        public async Task<IActionResult> GetById(Guid? id)
         {
-            User user = await userService.GetById(id);
-            UserDto userDto = UserDto.ToDto(user);
-            return Ok(userDto);
+            Guid? UserId = null;
+            RequestFeedback<UserDto> request = new RequestFeedback<UserDto>();
+            try
+            {
+                UserId = User.Id();
+                if (!UserId.HasValue || !id.HasValue)
+                {
+                    request.Title = "User Id not found";
+                    throw new Exception("User Id not found");
+                }
+
+                User user = await userService.GetById(id.Value);
+                request.Data = UserDto.ToDto(user);
+                return Ok(request);
+            }
+            catch (Exception e)
+            {
+                await errorLogService.InsertException(e, UserId);
+                return BadRequest();
+            }
         }
 
         [HttpPut("update")]
-        public IActionResult Update([FromBody]EditUserDto user)
+        public IActionResult Update(EditUserDto user)
         {
             try
             {
@@ -324,6 +362,27 @@ namespace WebApi.Controllers
         public string TestPerm()
         {
             return "Permitted!";
+        }
+
+        [HttpGet("double")]
+        [Permitted(Permission.AccessAll)]
+        public async Task<IActionResult> Double(int Value)
+        {
+            Guid? UserId = null;
+            RequestFeedback<int> request = new RequestFeedback<int>();
+            try
+            {
+                UserId = User.Id();
+                request.Data = Value * 2;
+                request.Success = true;
+                request.Title = string.Empty;
+                return Ok(request);
+            }
+            catch (Exception e)
+            {
+                await errorLogService.InsertException(e, UserId);
+                return BadRequest();
+            }
         }
     }
 }

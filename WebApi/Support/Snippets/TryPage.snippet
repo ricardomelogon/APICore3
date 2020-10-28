@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Title>TryPage</Title>
+    </Header>
+    <Snippet>
+      <Code Language="CSharp">
+        <![CDATA[Guid? UserId = null;
+            RequestFeedback request = new RequestFeedback();
+            try
+            {
+              UserId = User.Id();
+              $end$$selected$
+              return View();
+            }
+            catch (Exception e)
+            {
+                await errorLogService.InsertException(e, UserId);
+                return View("Error", request);
+            }]]>
+      </Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

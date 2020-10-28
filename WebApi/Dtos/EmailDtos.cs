@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace WebApi.Dtos
+﻿namespace WebApi.Dtos
 {
     public class EmailDto
     {

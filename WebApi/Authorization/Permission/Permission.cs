@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace WebApi.Authorization
+﻿namespace WebApi.Authorization
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1028:Enum Storage should be Int32", Justification = "ushort is defined instead of int since permissions are transformed into 16 bit characters and therefore an int32 would break the character limit")]
     public enum Permission : ushort
@@ -8,10 +6,10 @@ namespace WebApi.Authorization
         //SYSTEM SECTION
 
         /// <summary>
-        /// <para><b>Group:</b> NotSet</para>
-        /// <para><b>Description:</b> //SYSTEM SECTION</para>
+        /// <para><b>Group:</b> System</para>
+        /// <para><b>Description:</b> Error, Locked or Removed</para>
         /// </summary>
-        Locked = 0, //error condition
+        Locked = 0,
 
         /// <summary>
         /// <para><b>Group:</b> System</para>

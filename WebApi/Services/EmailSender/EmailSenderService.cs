@@ -6,7 +6,6 @@ using System.Linq;
 using System.Net.Mail;
 using System.Threading.Tasks;
 using WebApi.Data.Entities;
-using WebApi.Helpers;
 
 namespace WebApi.Services
 {

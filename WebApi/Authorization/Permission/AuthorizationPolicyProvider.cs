@@ -7,6 +7,7 @@ namespace FeatureAuthorize.PolicyCode
 {
     public class AuthorizationPolicyProvider : DefaultAuthorizationPolicyProvider
     {
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("CodeQuality", "IDE0052:Remove unread private members", Justification = "Base options value should be defined for the policy provider even if not explicitly used within this file")]
         private readonly AuthorizationOptions _options;
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "This method is only used in conjunction with the authorization process and does not require null validation")]

@@ -190,18 +190,5 @@ namespace WebApi.Support.Extensions
                 return false;
             }
         }
-
-        public static void SetClaim(this IIdentity currentPrincipal, string key, string value)
-        {
-            if (!(currentPrincipal is ClaimsIdentity identity))
-                return;
-
-            // check for existing claim and remove it
-            Claim existingClaim = identity.FindFirst(key);
-            if (existingClaim != null) identity.RemoveClaim(existingClaim);
-
-            // add new claim
-            identity.AddClaim(new Claim(key, value));
-        }
     }
 }

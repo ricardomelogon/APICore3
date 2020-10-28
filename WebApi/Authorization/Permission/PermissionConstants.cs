@@ -4,27 +4,22 @@ namespace WebApi.Authorization
 {
     public static class PermissionConstants
     {
-        public const string Prefix = "Permissions";
         public const string ClaimType = "Permissions";
-        public const string RefreshClaimType = "PermissionRefresh";
         public const string SubscriptionClaimType = "SubscriptionRefresh";
+
+        public const bool SubscriptionEnabled = false;
 
         /// <summary>
         /// In Seconds
         /// </summary>
-        public const int RefreshTime = 60 * 60;
-
-        public const bool RefreshEnabled = false;
-
-        public const bool SubscriptionEnabled = true && RefreshEnabled;
-        public const int SubscriptionRefreshTime = RefreshTime * 24;
+        public const int SubscriptionRefreshTime = 60 * 60 * 24;
 
         public const bool SubscriptionInternalValidation = false;
 
-        public const string ExternalValidationDomain = "localhost:44328";
+        public const string ExternalValidationDomain = "localhost:5001";
         public const string ExternalValidationLink = "https://" + ExternalValidationDomain + "/Subscription/Validate";
 
-        public const string ApplicationId = "b8b3971b-8794-4a7d-b6c6-f5aea3981faa";
+        public const string ApplicationId = "9775ba4f-5ac3-4dbe-ae04-1857ec29ad53";
 
         private static DateTime? SubscriptionDate = null;
 
@@ -41,6 +36,6 @@ namespace WebApi.Authorization
         /// <summary>
         /// In Seconds
         /// </summary>
-        public const int SubscriptionDateRefreshInterval = RefreshTime * 24;
+        public const int SubscriptionDateRefreshInterval = 60 * 60 * 24;
     }
 }

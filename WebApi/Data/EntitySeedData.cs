@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using WebApi.Authorization;
 using WebApi.Data.Entities;
 

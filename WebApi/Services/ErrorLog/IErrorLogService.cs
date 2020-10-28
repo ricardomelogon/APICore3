@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using WebApi.Dtos;
 using WebApi.Data.Entities;
+using WebApi.Dtos;
 
 namespace WebApi.Services
 {

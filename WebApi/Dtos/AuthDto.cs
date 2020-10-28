@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
+#pragma warning disable IDE1006 // Naming Styles - Naming style defined by a third party and should not be changed
 namespace WebApi.Dtos
 {
     public class AuthStatusDto
