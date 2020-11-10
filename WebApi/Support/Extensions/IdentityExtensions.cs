@@ -12,21 +12,21 @@ namespace WebApi.Support.Extensions
         public static string GivenName(this IIdentity id)
         {
             ClaimsIdentity claimsIdentity = (ClaimsIdentity)id;
-            Claim claim = claimsIdentity.Claims.FirstOrDefault(x => x.Type == ClaimTypes.GivenName);
+            Claim claim = claimsIdentity.Claims.FirstOrDefault(x => x.Type == JwtClaimType.FirstName);
             return (claim != null) ? claim.Value : string.Empty;
         }
 
         public static string Surname(this IIdentity id)
         {
             ClaimsIdentity claimsIdentity = (ClaimsIdentity)id;
-            Claim claim = claimsIdentity.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Surname);
+            Claim claim = claimsIdentity.Claims.FirstOrDefault(x => x.Type == JwtClaimType.LastName);
             return (claim != null) ? claim.Value : string.Empty;
         }
 
         public static string Id(this IIdentity id)
         {
             ClaimsIdentity claimsIdentity = (ClaimsIdentity)id;
-            Claim claim = claimsIdentity.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
+            Claim claim = claimsIdentity.Claims.FirstOrDefault(x => x.Type == JwtClaimType.UserId);
             return (claim != null) ? claim.Value : string.Empty;
         }
 
@@ -35,7 +35,7 @@ namespace WebApi.Support.Extensions
             try
             {
                 ClaimsIdentity claimsIdentity = (ClaimsIdentity)user.Identity;
-                Claim claim = claimsIdentity.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
+                Claim claim = claimsIdentity.Claims.FirstOrDefault(x => x.Type == JwtClaimType.UserId);
                 if (claim == null) return null;
                 else return new Guid(claim.Value);
             }
@@ -50,7 +50,7 @@ namespace WebApi.Support.Extensions
             try
             {
                 ClaimsIdentity claimsIdentity = (ClaimsIdentity)user.Identity;
-                Claim claim = claimsIdentity.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Email);
+                Claim claim = claimsIdentity.Claims.FirstOrDefault(x => x.Type == JwtClaimType.Email);
                 if (claim != null) return claim.Value;
                 else return null;
             }

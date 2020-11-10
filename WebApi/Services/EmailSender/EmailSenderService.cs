@@ -108,8 +108,8 @@ namespace WebApi.Services
             catch (Exception e)
             {
                 message.Dispose();
-                if (!await errorLogService.InsertException(e)) throw;
-                return false;
+                await errorLogService.InsertException(e);
+                throw e;
             }
         }
 

@@ -9,12 +9,6 @@
         }
     }
 
-    public static class Roles
-    {
-        public const string User = "User";
-        public const string Admin = "Admin";
-    }
-
     public static class IdentitySettings
     {
         /// <summary>
@@ -53,6 +47,8 @@
         public const string Email = "Email";
         public const string RevokeCode = "RevokeCode";
         public const string Role = "Role";
+        public const string FirstName = "FirstName";
+        public const string LastName = "LastName";
     }
 
     public static class AuthStatus

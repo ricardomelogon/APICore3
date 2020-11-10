@@ -54,6 +54,7 @@ namespace WebApi
             services.AddScoped<IEmailConfigService, EmailConfigService>();
             services.AddScoped<IEmailTemplateService, EmailTemplateService>();
             services.AddScoped<IEmailSenderService, EmailSenderService>();
+            services.AddScoped<IPermissionService, PermissionService>();
             //Identities
             services.AddIdentity<User, Role>(options =>
             {

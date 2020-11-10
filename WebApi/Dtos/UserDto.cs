@@ -73,4 +73,9 @@ namespace WebApi.Dtos
         public string OldPassword { get; set; }
         public string NewPassword { get; set; }
     }
+
+    public class ConfirmCodeDto
+    {
+        public string Code { get; set; }
+    }
 }

@@ -2,8 +2,8 @@
 {
     public class RequestView
     {
-        public string Text { get; set; }
-        public string Title { get; set; }
+        public string Status { get; set; }
+        public string Message { get; set; }
         public bool Success { get; set; }
     }
 
@@ -13,8 +13,8 @@
 
         public RequestFeedback(T Data, string Title = "There was a problem resolving your request", string Text = "", bool Success = false)
         {
-            this.Title = Title;
-            this.Text = Text;
+            this.Message = Title;
+            this.Status = Text;
             this.Success = Success;
             this.Data = Data;
         }
@@ -23,8 +23,8 @@
         {
             this.Data = default;
             this.Success = false;
-            this.Text = string.Empty;
-            this.Title = string.Empty;
+            this.Status = string.Empty;
+            this.Message = string.Empty;
         }
     }
 
@@ -32,8 +32,8 @@
     {
         public RequestFeedback(string Data = "", string Title = "", string Text = "", bool Success = false) : base(Data, Title, Text, Success)
         {
-            this.Title = Title;
-            this.Text = Text;
+            this.Message = Title;
+            this.Status = Text;
             this.Success = Success;
             this.Data = Data;
         }
@@ -42,8 +42,8 @@
         {
             this.Data = string.Empty;
             this.Success = false;
-            this.Text = string.Empty;
-            this.Title = "There was a problem resolving your request";
+            this.Status = string.Empty;
+            this.Message = "There was a problem resolving your request";
         }
     }
 }

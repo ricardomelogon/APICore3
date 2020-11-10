@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -36,6 +37,7 @@ namespace WebApi.Services
         private readonly IErrorLogService errorLogService;
         private readonly IEmailSenderService emailSenderService;
         private readonly IConfiguration configuration;
+        private readonly IPermissionService permissionService;
 
         public UserService
         (
@@ -46,7 +48,8 @@ namespace WebApi.Services
             IHttpContextAccessor httpContextAccessor,
             IErrorLogService logService,
             IEmailSenderService emailSenderService,
-            IConfiguration configuration
+            IConfiguration configuration,
+            IPermissionService permissionService
         )
         {
             db = context;
@@ -57,6 +60,7 @@ namespace WebApi.Services
             this.errorLogService = logService;
             this.emailSenderService = emailSenderService;
             this.configuration = configuration;
+            this.permissionService = permissionService;
         }
 
         public async Task<AuthStatusDto> AuthenticateAsync(User user, string password)
@@ -281,6 +285,7 @@ namespace WebApi.Services
         public async Task<AuthStatusDto> CreateAsync(User user, string password)
         {
             AuthStatusDto model = new AuthStatusDto { Status = AuthStatus.Error };
+            using IDbContextTransaction Transaction = await db.Database.BeginTransactionAsync();
             try
             {
                 // validation
@@ -333,10 +338,14 @@ namespace WebApi.Services
 
                 if (result.Succeeded) await emailSenderService.SendEmail(user.Email, EmailTemplates.Account.RegistrationCode, ConfirmationCode);
 
+                await Transaction.CommitAsync();
+                await Transaction.DisposeAsync();
                 return model;
             }
             catch (Exception e)
             {
+                await Transaction.RollbackAsync();
+                await Transaction.DisposeAsync();
                 await errorLogService.InsertException(e);
                 throw;
             }
@@ -439,6 +448,7 @@ namespace WebApi.Services
 
         public async Task<bool> ConfirmEmailCodeAsync(string ConfirmationCode, string Email = "")
         {
+            IDbContextTransaction transaction = await db.Database.BeginTransactionAsync();
             try
             {
                 if (string.IsNullOrWhiteSpace(ConfirmationCode)) throw new ArgumentNullException("No Confirmation Code");
@@ -448,13 +458,17 @@ namespace WebApi.Services
                 if (User.ConfirmationCode == HashCode(ConfirmationCode))
                 {
                     User.EmailConfirmed = true;
-                    await userManager.AddToRoleAsync(User, Roles.User);
+                    await permissionService.AddToUser(User, Permission.User);
                     await userManager.UpdateAsync(User);
                     AccessClear(User);
+                    await transaction.CommitAsync();
+                    await transaction.DisposeAsync();
                     return true;
                 }
                 else
                 {
+                    await transaction.RollbackAsync();
+                    await transaction.DisposeAsync();
                     await AccessFailed(User);
                     return false;
                 }
@@ -486,29 +500,25 @@ namespace WebApi.Services
         [Authorize]
         public async Task<bool> ResendEmailConfirmationAsync()
         {
+            IDbContextTransaction transaction = await db.Database.BeginTransactionAsync();
             try
             {
                 User CurrentUser = await userManager.FindByIdAsync(httpContextAccessor.HttpContext.User.FindFirstValue(JwtClaimType.UserId));
-                string OldCode = CurrentUser.ConfirmationCode;
+                if (CurrentUser == null) throw new Exception("User not found");
                 string ConfirmationCode = GenerateConfirmationCode(6);
                 CurrentUser.ConfirmationCode = HashCode(ConfirmationCode);
                 IdentityResult result = await userManager.UpdateAsync(CurrentUser);
-                if (result.Succeeded)
-                {
-                    bool sendSuccess = await emailSenderService.SendEmail(CurrentUser.Email, EmailTemplates.Account.RegistrationCode, ConfirmationCode);
-
-                    if (sendSuccess) return true;
-
-                    //Could't send the email, revert to old code
-                    CurrentUser.ConfirmationCode = OldCode;
-                    result = await userManager.UpdateAsync(CurrentUser);
-                    if (result.Succeeded) return false;
-                    else return false; //Can't send the email, can't revert the user to old code. Server or Network error during process, user will have to try again later.
-                }
-                else return false;
+                if (!result.Succeeded) throw new Exception("Could not change user confirmation code");
+                bool sendSuccess = await emailSenderService.SendEmail(CurrentUser.Email, EmailTemplates.Account.RegistrationCode, ConfirmationCode);
+                if (!sendSuccess) throw new Exception("Failed to send e-mail");
+                await transaction.CommitAsync();
+                await transaction.DisposeAsync();
+                return true;
             }
             catch (Exception e)
             {
+                await transaction.RollbackAsync();
+                await transaction.DisposeAsync();
                 await errorLogService.InsertException(e);
                 throw;
             }
@@ -772,15 +782,15 @@ namespace WebApi.Services
 
                 string FirstName = "User";
                 if (!string.IsNullOrEmpty(CurrentUser.FirstName)) FirstName = CurrentUser.FirstName;
-                claims.Add(new Claim(ClaimTypes.GivenName, FirstName));
+                claims.Add(new Claim(JwtClaimType.FirstName, FirstName));
 
                 string LastName = string.Empty;
                 if (!string.IsNullOrEmpty(CurrentUser.LastName)) LastName = CurrentUser.LastName;
-                claims.Add(new Claim(ClaimTypes.Surname, LastName));
+                claims.Add(new Claim(JwtClaimType.LastName, LastName));
 
                 string Email = string.Empty;
                 if (!string.IsNullOrEmpty(CurrentUser.Email)) Email = CurrentUser.Email;
-                claims.Add(new Claim(ClaimTypes.Email, Email));
+                claims.Add(new Claim(JwtClaimType.Email, Email));
 
                 if (PermissionConstants.SubscriptionEnabled)
                 {

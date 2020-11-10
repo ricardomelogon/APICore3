@@ -33,25 +33,33 @@ namespace WebApi.Controllers
         [HttpPost("auth")]
         public async Task<IActionResult> AuthenticateAsync(UserDto userDto)
         {
+            Guid? UserId = null;
+            RequestFeedback<AuthDto> request = new RequestFeedback<AuthDto>();
             try
             {
+                UserId = User.Id();
+
                 AuthStatusDto Auth = await userService.AuthenticateAsync(userDto.ToUser(), userDto.Password);
-                return Auth.Status switch
+                request.Status = Auth.Status;
+                request.Data = Auth.AuthDto;
+                request.Success = Auth.Status switch
                 {
-                    AuthStatus.Ok => Ok(new { Status = AuthStatus.Ok, User = Auth.AuthDto }),
-                    AuthStatus.NoEmailConfirm => Ok(new { Status = AuthStatus.NoEmailConfirm, User = Auth.AuthDto }),
-                    AuthStatus.NoUsernameOrEmail => BadRequest(new { Status = AuthStatus.NoUsernameOrEmail }),
-                    AuthStatus.PasswordRequired => BadRequest(new { Status = AuthStatus.PasswordRequired }),
-                    AuthStatus.LoginInvalid => BadRequest(new { Status = AuthStatus.LoginInvalid }),
-                    AuthStatus.UserLocked => BadRequest(new { Status = AuthStatus.UserLocked }),
-                    AuthStatus.Error => BadRequest(new { Status = AuthStatus.Error }),
-                    _ => BadRequest(new { Status = AuthStatus.Error }),
+                    AuthStatus.Ok => true,
+                    AuthStatus.NoEmailConfirm => true,
+                    AuthStatus.NoUsernameOrEmail => false,
+                    AuthStatus.PasswordRequired => false,
+                    AuthStatus.LoginInvalid => false,
+                    AuthStatus.UserLocked => false,
+                    AuthStatus.Error => false,
+                    _ => false,
                 };
+                if (request.Success) return Ok(request);
+                else return BadRequest(request);
             }
             catch (Exception e)
             {
-                await errorLogService.InsertException(e);
-                return BadRequest(new { Status = AuthStatus.Error });
+                await errorLogService.InsertException(e, UserId);
+                return BadRequest();
             }
         }
 
@@ -59,24 +67,31 @@ namespace WebApi.Controllers
         [HttpPost("googleauth")]
         public async Task<IActionResult> GoogleAuthAsync(AuthToken token)
         {
+            Guid? UserId = null;
+            RequestFeedback<AuthDto> request = new RequestFeedback<AuthDto>();
             try
             {
-                AuthStatusDto Auth = await userService.GoogleAuthAsync(token.idToken);
+                UserId = User.Id();
 
-                return Auth.Status switch
+                AuthStatusDto Auth = await userService.GoogleAuthAsync(token.idToken);
+                request.Status = Auth.Status;
+                request.Data = Auth.AuthDto;
+                request.Success = Auth.Status switch
                 {
-                    AuthStatus.Ok => Ok(new { Status = AuthStatus.Ok, User = Auth.AuthDto }),
-                    AuthStatus.NoEmailConfirm => Ok(new { Status = AuthStatus.NoEmailConfirm, User = Auth.AuthDto }),
-                    AuthStatus.NoEmail => BadRequest(new { Status = AuthStatus.NoEmail }),
-                    AuthStatus.UserLocked => BadRequest(new { Status = AuthStatus.UserLocked }),
-                    AuthStatus.Error => BadRequest(new { Status = AuthStatus.Error }),
-                    _ => BadRequest(new { Status = AuthStatus.Error }),
+                    AuthStatus.Ok => true,
+                    AuthStatus.NoEmailConfirm => true,
+                    AuthStatus.NoEmail => false,
+                    AuthStatus.UserLocked => false,
+                    AuthStatus.Error => false,
+                    _ => false,
                 };
+                if (request.Success) return Ok(request);
+                else return BadRequest(request);
             }
             catch (Exception e)
             {
-                await errorLogService.InsertException(e);
-                return BadRequest(new { Status = AuthStatus.Error });
+                await errorLogService.InsertException(e, UserId);
+                return BadRequest();
             }
         }
 
@@ -84,23 +99,30 @@ namespace WebApi.Controllers
         [HttpPost("facebookauth")]
         public async Task<IActionResult> FacebookAuthAsync(AuthToken token)
         {
+            Guid? UserId = null;
+            RequestFeedback<AuthDto> request = new RequestFeedback<AuthDto>();
             try
             {
-                AuthStatusDto Auth = await userService.FacebookAuthAsync(token.idToken);
+                UserId = User.Id();
 
-                return Auth.Status switch
+                AuthStatusDto Auth = await userService.FacebookAuthAsync(token.idToken);
+                request.Status = Auth.Status;
+                request.Data = Auth.AuthDto;
+                request.Success = Auth.Status switch
                 {
-                    AuthStatus.Ok => Ok(new { Status = AuthStatus.Ok, User = Auth.AuthDto }),
-                    AuthStatus.NoEmailConfirm => Ok(new { Status = AuthStatus.NoEmailConfirm, User = Auth.AuthDto }),
-                    AuthStatus.NoEmail => BadRequest(new { Status = AuthStatus.NoEmail }),
-                    AuthStatus.Error => BadRequest(new { Status = AuthStatus.Error }),
-                    _ => BadRequest(new { Status = AuthStatus.Error }),
+                    AuthStatus.Ok => true,
+                    AuthStatus.NoEmailConfirm => true,
+                    AuthStatus.NoEmail => false,
+                    AuthStatus.Error => false,
+                    _ => false,
                 };
+                if (request.Success) return Ok(request);
+                else return BadRequest(request);
             }
             catch (Exception e)
             {
-                await errorLogService.InsertException(e);
-                return BadRequest(new { Status = AuthStatus.Error });
+                await errorLogService.InsertException(e, UserId);
+                return BadRequest();
             }
         }
 
@@ -108,25 +130,33 @@ namespace WebApi.Controllers
         [HttpPost("refresh")]
         public async Task<IActionResult> RefreshAsync(AuthToken token)
         {
+            Guid? UserId = null;
+            RequestFeedback<AuthDto> request = new RequestFeedback<AuthDto>();
             try
             {
+                UserId = User.Id();
+
                 AuthStatusDto result = await userService.RefreshAsync(token.idToken);
-                return result.Status switch
+                request.Status = result.Status;
+                request.Data = result.AuthDto;
+                request.Success = result.Status switch
                 {
-                    AuthStatus.Ok => Ok(new { Status = AuthStatus.Ok, User = result.AuthDto }),
-                    AuthStatus.NoEmailConfirm => Ok(new { Status = AuthStatus.Ok, User = result.AuthDto }),
-                    AuthStatus.TokenNotValid => BadRequest(new { Status = AuthStatus.TokenNotValid }),
-                    AuthStatus.LoginInvalid => BadRequest(new { Status = AuthStatus.LoginInvalid }),
-                    AuthStatus.UserLocked => BadRequest(new { Status = AuthStatus.UserLocked }),
-                    AuthStatus.TokenRevoked => BadRequest(new { Status = AuthStatus.TokenRevoked }),
-                    AuthStatus.Error => BadRequest(new { Status = AuthStatus.Error }),
-                    _ => BadRequest(new { Status = AuthStatus.Error }),
+                    AuthStatus.Ok => true,
+                    AuthStatus.NoEmailConfirm => true,
+                    AuthStatus.TokenNotValid => false,
+                    AuthStatus.LoginInvalid => false,
+                    AuthStatus.UserLocked => false,
+                    AuthStatus.TokenRevoked => false,
+                    AuthStatus.Error => false,
+                    _ => false,
                 };
+                if (request.Success) return Ok(request);
+                else return BadRequest(request);
             }
             catch (Exception e)
             {
-                await errorLogService.InsertException(e);
-                return BadRequest(new { Status = AuthStatus.Error });
+                await errorLogService.InsertException(e, UserId);
+                return BadRequest();
             }
         }
 
@@ -134,30 +164,33 @@ namespace WebApi.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> RegisterAsync(UserDto userDto)
         {
-            // map dto to entity
-            User user = userDto.ToUser();
-
+            Guid? UserId = null;
+            RequestFeedback<AuthDto> request = new RequestFeedback<AuthDto>();
             try
             {
-                // save
+                UserId = User.Id();
+                User user = userDto.ToUser();
                 AuthStatusDto result = await userService.CreateAsync(user, userDto.Password);
-                return result.Status switch
+                request.Status = result.Status;
+                request.Data = result.AuthDto;
+                request.Success = result.Status switch
                 {
-                    AuthStatus.NoEmailConfirm => Ok(new { Status = AuthStatus.NoEmailConfirm, User = result.AuthDto }),
-                    AuthStatus.UsernameNotValid => BadRequest(new { Status = AuthStatus.UsernameNotValid }),
-                    AuthStatus.PasswordRequired => BadRequest(new { Status = AuthStatus.PasswordRequired }),
-                    AuthStatus.NoEmail => BadRequest(new { Status = AuthStatus.NoEmail }),
-                    AuthStatus.UsernameTaken => BadRequest(new { Status = AuthStatus.UsernameTaken }),
-                    AuthStatus.EmailTaken => BadRequest(new { Status = AuthStatus.EmailTaken }),
-                    AuthStatus.Error => BadRequest(new { Status = AuthStatus.Error }),
-                    _ => BadRequest(new { Status = AuthStatus.Error }),
+                    AuthStatus.NoEmailConfirm => true,
+                    AuthStatus.UsernameNotValid => true,
+                    AuthStatus.PasswordRequired => false,
+                    AuthStatus.NoEmail => false,
+                    AuthStatus.UsernameTaken => false,
+                    AuthStatus.EmailTaken => false,
+                    AuthStatus.Error => false,
+                    _ => false,
                 };
+                if (request.Success) return Ok(request);
+                else return BadRequest(request);
             }
             catch (Exception e)
             {
-                // return error message if there was an exception
-                await errorLogService.InsertException(e);
-                return BadRequest(new { Status = AuthStatus.Error });
+                await errorLogService.InsertException(e, UserId);
+                return BadRequest();
             }
         }
 
@@ -211,7 +244,7 @@ namespace WebApi.Controllers
             {
                 UserId = User.Id();
                 request.Success = true;
-                request.Title = "Welcome!";
+                request.Message = "Welcome!";
                 return Ok(request);
             }
             catch (Exception e)
@@ -246,26 +279,32 @@ namespace WebApi.Controllers
             }
         }
 
-        [AllowAnonymous]
-        [Authorize] //Authorize without role
+        [Authorize]
         [HttpPost("confirmemail")]
-        public async Task<ActionResult> ConfirmEmailAsync(string ConfirmationCode)
+        public async Task<IActionResult> ConfirmEmail(ConfirmCodeDto model)
         {
+            Guid? UserId = null;
+            RequestFeedback request = new RequestFeedback();
             try
             {
-                if (string.IsNullOrEmpty(ConfirmationCode)) return BadRequest("Please enter the confirmation code");
+                UserId = User.Id();
+                if (string.IsNullOrEmpty(model.Code)) return BadRequest("Please enter the confirmation code");
 
                 bool? IsLocked = await userService.IsLockedAsync();
                 if (IsLocked == null || IsLocked == true) return BadRequest("User Locked");
 
-                bool result = await userService.ConfirmEmailCodeAsync(ConfirmationCode);
-
-                if (!result) return BadRequest("Wrong Code");
-                return Ok();
+                request.Success = await userService.ConfirmEmailCodeAsync(model.Code);
+                if (request.Success)
+                {
+                    request.Message = "Confirmation code successfully verified";
+                    request.Status = AuthStatus.Ok;
+                    return Ok(request);
+                }
+                else return BadRequest(request);
             }
             catch (Exception e)
             {
-                await errorLogService.InsertException(e);
+                await errorLogService.InsertException(e, UserId);
                 return BadRequest();
             }
         }
@@ -275,15 +314,23 @@ namespace WebApi.Controllers
         [HttpPost("resendconfirm")]
         public async Task<ActionResult> ResendEmailConfirmationAsync()
         {
+            Guid? UserId = null;
+            RequestFeedback request = new RequestFeedback();
             try
             {
-                bool result = await userService.ResendEmailConfirmationAsync();
-                if (!result) return BadRequest("Could not resend e-mail confirmation");
-                return Ok();
+                UserId = User.Id();
+
+                request.Success = await userService.ResendEmailConfirmationAsync();
+                if (request.Success)
+                {
+                    request.Message = "New e-mail code has been sent successfully";
+                    return Ok(request);
+                }
+                return BadRequest("Could not resend e-mail confirmation");
             }
             catch (Exception e)
             {
-                await errorLogService.InsertException(e);
+                await errorLogService.InsertException(e, UserId);
                 return BadRequest();
             }
         }
@@ -306,7 +353,7 @@ namespace WebApi.Controllers
                 UserId = User.Id();
                 if (!UserId.HasValue || !id.HasValue)
                 {
-                    request.Title = "User Id not found";
+                    request.Message = "User Id not found";
                     throw new Exception("User Id not found");
                 }
 
@@ -375,7 +422,7 @@ namespace WebApi.Controllers
                 UserId = User.Id();
                 request.Data = Value * 2;
                 request.Success = true;
-                request.Title = string.Empty;
+                request.Message = string.Empty;
                 return Ok(request);
             }
             catch (Exception e)

@@ -14,7 +14,7 @@ namespace WebApi.Support.Extensions
         {
             try
             {
-                Claim Claim = Token.Claims.Where(s => s.Type == ClaimTypes.GivenName).FirstOrDefault();
+                Claim Claim = Token.Claims.Where(s => s.Type == JwtClaimType.FirstName).FirstOrDefault();
                 return (Claim != null) ? Claim.Value : string.Empty;
             }
             catch (Exception)
@@ -27,7 +27,7 @@ namespace WebApi.Support.Extensions
         {
             try
             {
-                Claim Claim = Token.Claims.Where(s => s.Type == ClaimTypes.Surname).FirstOrDefault();
+                Claim Claim = Token.Claims.Where(s => s.Type == JwtClaimType.LastName).FirstOrDefault();
                 return (Claim != null) ? Claim.Value : string.Empty;
             }
             catch (Exception)
