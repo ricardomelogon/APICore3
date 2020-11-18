@@ -485,7 +485,11 @@ namespace WebApi.Services
             try
             {
                 if (string.IsNullOrWhiteSpace(ConfirmationCode)) throw new ArgumentNullException("No Confirmation Code");
-                User User = await userManager.FindByIdAsync(httpContextAccessor.HttpContext.User.FindFirst(JwtClaimType.UserId).Value);
+
+                Claim UserIdClaim = httpContextAccessor.HttpContext.User.FindFirst(JwtClaimType.UserId);
+                User User = null;
+                if (UserIdClaim != null) User = await userManager.FindByIdAsync(httpContextAccessor.HttpContext.User.FindFirst(JwtClaimType.UserId).Value);
+                
                 if (User == null && !string.IsNullOrWhiteSpace(Email)) User = await userManager.FindByEmailAsync(Email);
                 if (User == null) throw new NullReferenceException("User not Found");
                 return User.ConfirmationCode == HashCode(ConfirmationCode);
@@ -528,27 +532,25 @@ namespace WebApi.Services
         {
             User user = await userManager.FindByEmailAsync(Email);
             if (user == null) return false;
-
+            IDbContextTransaction transaction = await db.Database.BeginTransactionAsync();
             try
             {
                 string PasswordHash = user.PasswordHash;
 
                 IdentityResult result = await userManager.RemovePasswordAsync(user);
-                if (result.Succeeded)
-                {
-                    result = await userManager.AddPasswordAsync(user, Password);
-                    if (!result.Succeeded)
-                    {
-                        //Revert if failed
-                        user.PasswordHash = PasswordHash;
-                        await userManager.UpdateAsync(user);
-                    }
-                    return result.Succeeded;
-                }
-                else return result.Succeeded;
+                if (!result.Succeeded) throw new Exception("User password could not be removed");
+                
+                result = await userManager.AddPasswordAsync(user, Password);
+                if (!result.Succeeded) throw new Exception("New user password could not be added");
+
+                await transaction.CommitAsync();
+                await transaction.DisposeAsync();
+                return result.Succeeded;
             }
             catch (Exception e)
             {
+                await transaction.RollbackAsync();
+                await transaction.DisposeAsync();
                 await errorLogService.InsertException(e);
                 throw;
             }
@@ -834,7 +836,7 @@ namespace WebApi.Services
                     Token = tokenString,
                     Username = CurrentUser.UserName,
                     EmailConfirmed = CurrentUser.EmailConfirmed,
-                    TokenExpiration = JwtSettings.Expiration
+                    Permissions = Permissions
                 };
                 return dto;
             }

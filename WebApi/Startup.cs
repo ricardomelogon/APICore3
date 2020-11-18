@@ -84,8 +84,8 @@ namespace WebApi
                {
                    OnTokenValidated = context =>
                    {
-                       DateTime Expiration = DateTime.MinValue.AddSeconds(Convert.ToInt64(context.Principal.FindFirst("exp").Value));
-                       DateTime CurrentTime = DateTime.Now;
+                       DateTime Expiration = DateTimeOffset.FromUnixTimeSeconds(Convert.ToInt64(context.Principal.FindFirst("exp").Value)).UtcDateTime;
+                       DateTime CurrentTime = DateTime.UtcNow;
                        TimeSpan TimeLeft = CurrentTime - Expiration;
                        if (TimeLeft.TotalMinutes < JwtSettings.RefreshTime) context.Response.Headers.Add("should_refresh", "true");
                        return Task.CompletedTask;
@@ -108,7 +108,8 @@ namespace WebApi
                    IssuerSigningKey = Secret,
                    TokenDecryptionKey = Key,
                    ValidateIssuer = false,
-                   ValidateAudience = false
+                   ValidateAudience = false,
+                   RequireExpirationTime = true,
                };
            });
 

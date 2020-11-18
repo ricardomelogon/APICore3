@@ -32,13 +32,13 @@
         /// <summary>
         /// Expiration time in minutes
         /// </summary>
-        public const int Expiration = 60;
+        public const int Expiration = 10;
 
         /// <summary>
         /// Threshold for token refresh.
         /// If the time to expiration is smaller the RefreshTime in minutes the token should be refreshed.
         /// </summary>
-        public const int RefreshTime = 10;
+        public const int RefreshTime = 5;
     }
 
     public static class JwtClaimType

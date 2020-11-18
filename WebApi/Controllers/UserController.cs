@@ -150,8 +150,7 @@ namespace WebApi.Controllers
                     AuthStatus.Error => false,
                     _ => false,
                 };
-                if (request.Success) return Ok(request);
-                else return BadRequest(request);
+                return Ok(request);
             }
             catch (Exception e)
             {
@@ -198,19 +197,18 @@ namespace WebApi.Controllers
         [HttpPost("forgotpwdsendcode")]
         public async Task<ActionResult> ForgotPasswordEmailAsync(ForgotPwdDto model)
         {
+            RequestFeedback request = new RequestFeedback();
             try
             {
-                if (ModelState.IsValid)
-                {
-                    bool result = await userService.SendForgotPwdEmailAsync(model.Email);
-                    if (result) return Ok();
-                }
-                return BadRequest("Could not send confirmation code");
+                if (!TextHelper.IsValidEmail(model.Email)) throw new Exception("E-mail not valid");
+                request.Success = await userService.SendForgotPwdEmailAsync(model.Email);
+                if (request.Success) request.Message = "New e-mail code has been sent successfully";
+                return Ok(request);
             }
             catch (Exception e)
             {
                 await errorLogService.InsertException(e);
-                return BadRequest();
+                return BadRequest(request);
             }
         }
 
@@ -218,20 +216,32 @@ namespace WebApi.Controllers
         [HttpPost("forgotpwdconfirm")]
         public async Task<ActionResult> ForgotPasswordAsync(ForgotPwdDto model)
         {
+            RequestFeedback request = new RequestFeedback();
             try
             {
-                if (!ModelState.IsValid) return BadRequest("No valid e-mail");
-                if (string.IsNullOrWhiteSpace(model.ConfirmationCode) || string.IsNullOrWhiteSpace(model.NewPassword)) return BadRequest("Confirmation Code or Password do not exist");
-                if (!await userService.IsEmailCodeAsync(model.ConfirmationCode, model.Email)) return BadRequest("Confirmation Code does not match");
-                bool result = await userService.ResetPasswordAsync(model.Email, model.NewPassword);
-                if (!result) return BadRequest("Could not use specified password or user not found.");
-                return Ok();
+                if (string.IsNullOrWhiteSpace(model.ConfirmationCode) || string.IsNullOrWhiteSpace(model.NewPassword) || !TextHelper.IsValidEmail(model.Email))
+                {
+                    request.Message = "Please enter a valid confirmation code, password and email";
+                    return Ok(request);
+                }
+
+                if (!await userService.IsEmailCodeAsync(model.ConfirmationCode, model.Email))
+                {
+                    request.Message = "The given confirmation code is not valid";
+                    return Ok(request);
+                }
+
+                request.Success = await userService.ResetPasswordAsync(model.Email, model.NewPassword);
+                if (!request.Success) return Ok(request);
+                request.Message = "Your password has been changed successfully";
+                return Ok(request);
             }
             catch (Exception e)
             {
                 await errorLogService.InsertException(e);
                 return BadRequest();
             }
+
         }
 
         [AllowAnonymous]

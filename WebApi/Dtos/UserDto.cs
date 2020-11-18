@@ -43,8 +43,6 @@ namespace WebApi.Dtos
 
     public class ForgotPwdDto
     {
-        [Required]
-        [EmailAddress]
         public string Email { get; set; }
 
         public string ConfirmationCode { get; set; }
@@ -61,7 +59,7 @@ namespace WebApi.Dtos
         public string Email { get; set; }
         public string PhoneNumber { get; set; }
         public string Token { get; set; }
-        public int TokenExpiration { get; set; }
+        public string Permissions { get; set; }
         public bool EmailConfirmed { get; set; }
     }
 
